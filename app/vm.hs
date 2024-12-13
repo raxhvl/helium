@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use newtype instead of data" #-}
 module VM where
 
 import Data.Word (Word8, Word256)
@@ -38,20 +36,21 @@ decodeOpcode txData
     | otherwise = case txData ! 0 of
         0x60 -> if V.length txData >= 2
                 then Right (PUSH1 (txData ! 1))
-                else Left "Insufficient data for PUSH1"
+                else Left "Insufficient data for PUSH1 opcode"
         0x61 -> if V.length txData >= 3
                 then Right (PUSH2 (fromIntegral (txData ! 1) `shiftL` 8 .|. fromIntegral (txData ! 2)))
-                else Left "Insufficient data for PUSH2"
+                else Left "Insufficient data for PUSH2 opcode"
         0x7f -> if V.length txData >= 33
                 then Right (PUSH32 (foldl (\acc x -> acc `shiftL` 8 .|. fromIntegral x) 0 (V.toList (V.slice 1 32 txData))))
-                else Left "Insufficient data for PUSH32"
+                else Left "Insufficient data for PUSH32 opcode"
         _    -> Left "Unknown opcode"
 
 -- Execute the opcode and update the state
 executeOpcode :: Opcode -> State -> State
-executeOpcode (PUSH1 value) state = state { stack = fromIntegral value : stack state }
-executeOpcode (PUSH2 value) state = state { stack = fromIntegral value : stack state }
-executeOpcode (PUSH32 value) state = state { stack = value : stack state }
+executeOpcode opcode state = case opcode of
+    PUSH1 value -> state { stack = fromIntegral value : stack state }
+    PUSH2 value -> state { stack = fromIntegral value : stack state }
+    PUSH32 value -> state { stack = value : stack state }
 
 -- Helper function to convert a list of Word8 to Word256
 word8ListToWord256 :: [Word8] -> Word256
