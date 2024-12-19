@@ -1,7 +1,7 @@
 module VM where
 
-import Data.Word (Word8, Word256)
-import Data.Vector (Vector, (!), (//))
+import Data.Word (Word8, Word16, Word256)
+import Data.Vector (Vector, (!))
 import qualified Data.Vector as V
 import Data.Bits (shiftL, (.|.))
 
@@ -23,35 +23,32 @@ data Opcode = PUSH1 Word8 | PUSH2 Word16 | PUSH32 Word256
 -- transaction and the current state and returns a new state.
 ipsilon :: Transaction -> State -> Either String State
 ipsilon transaction currentState = 
-    let txData = VM.txData transaction
-    in case decodeOpcode txData of
-         Left err -> Left err
-         Right opcode -> Right (executeOpcode opcode currentState)
+    case decodeOpcode (txData transaction) of
+        Left err -> Left err
+        Right opcode -> Right (executeOpcode opcode currentState)
 
 -- Decode the opcode from the transaction data
 decodeOpcode :: Vector Word8 -> Either String Opcode
 decodeOpcode txData
     | V.null txData = Left "Transaction data is empty"
-    | V.length txData < 2 = Left "Transaction data is too short for opcode"
     | otherwise = case txData ! 0 of
-        0x60 -> if V.length txData >= 2
-                then Right (PUSH1 (txData ! 1))
-                else Left "Insufficient data for PUSH1 opcode"
-        0x61 -> if V.length txData >= 3
-                then Right (PUSH2 (fromIntegral (txData ! 1) `shiftL` 8 .|. fromIntegral (txData ! 2)))
-                else Left "Insufficient data for PUSH2 opcode"
-        0x7f -> if V.length txData >= 33
-                then Right (PUSH32 (foldl (\acc x -> acc `shiftL` 8 .|. fromIntegral x) 0 (V.toList (V.slice 1 32 txData))))
-                else Left "Insufficient data for PUSH32 opcode"
+        0x60 -> decodePush 2 PUSH1
+        0x61 -> decodePush 3 (PUSH2 . toWord16)
+        0x7f -> decodePush 33 (PUSH32 . toWord256)
         _    -> Left "Unknown opcode"
+  where
+    decodePush n constructor
+        | V.length txData >= n = Right (constructor (V.slice 1 (n - 1) txData))
+        | otherwise = Left $ "Insufficient data for " ++ show (txData ! 0) ++ " opcode"
+
+    toWord16 v = fromIntegral (v ! 0) `shiftL` 8 .|. fromIntegral (v ! 1)
+    toWord256 = V.foldl' (\acc x -> acc `shiftL` 8 .|. fromIntegral x) 0
 
 -- Execute the opcode and update the state
 executeOpcode :: Opcode -> State -> State
 executeOpcode opcode state = case opcode of
-    PUSH1 value -> state { stack = fromIntegral value : stack state }
-    PUSH2 value -> state { stack = fromIntegral value : stack state }
-    PUSH32 value -> state { stack = value : stack state }
-
--- Helper function to convert a list of Word8 to Word256
-word8ListToWord256 :: [Word8] -> Word256
-word8ListToWord256 = foldl (\acc x -> acc `shiftL` 8 .|. fromIntegral x) 0
+    PUSH1 value -> push value
+    PUSH2 value -> push value
+    PUSH32 value -> push value
+  where
+    push value = state { stack = fromIntegral value : stack state }
