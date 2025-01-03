@@ -1,0 +1,20 @@
+{
+  "name": "evm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2"
+  },
+  "dependencies": {
+    "rlp": "^3.0.0",
+    "ts-node": "^10.9.2"
+  }
+}

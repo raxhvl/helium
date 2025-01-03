@@ -1,3 +1,9 @@
 {
-  "cSpell.words": ["foldl", "hsenv", "ipsilon"]
+  "cSpell.words": [
+    "CALLDATALOAD",
+    "ipsilon",
+    "returndata",
+    "substate",
+    "txbytes"
+  ]
 }

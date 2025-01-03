@@ -1,3 +1,3 @@
-# Helium
+# Helium 🎈
 
-Helium is a lightweight, experimental implementation of the EVM in haskell.
+Helium is a _frivolous_ collection of lightweight, experimental implementations of the EVM in various languages.
