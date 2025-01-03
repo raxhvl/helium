@@ -11,6 +11,9 @@ export class Input {
   // The address of the account which caused the code to be executing.
   senderAddress = Buffer.alloc(20);
 
+  // The byte array that is the input data to this execution.
+  data = Buffer.alloc(0);
+
   // The byte array that is the machine code to be executed.
   code = Buffer.alloc(0);
 
@@ -18,12 +21,14 @@ export class Input {
     executionAddress: Buffer,
     originAddress: Buffer,
     senderAddress: Buffer,
-    code: Buffer
+    code: Buffer,
+    data: Buffer
   ) {
     this.executionAddress = executionAddress;
     this.originAddress = originAddress;
     this.senderAddress = senderAddress;
     this.code = code;
+    this.data = data;
   }
 }
 
@@ -85,13 +90,21 @@ export class Memory {
 }
 
 export class Stack {
-  private _stack: bigint[] = [];
+  private _stack: Buffer[] = [];
 
   maxLength: number = 1024;
 
-  public push(value: bigint | string): void {
+  public push(value: Buffer | string | bigint): void {
     if (typeof value === "string") {
-      value = BigInt(value);
+      value = Buffer.from(value, "hex");
+    }
+
+    if (typeof value === "bigint") {
+      value = Buffer.from(value.toString(16), "hex");
+    }
+
+    if (value.length > 32) {
+      throw new Error("Stack value exceeds 32 bytes");
     }
 
     if (this._stack.length == this.maxLength - 1) {
@@ -100,7 +113,7 @@ export class Stack {
     this._stack.push(value);
   }
 
-  public pop(): bigint {
+  public pop(): Buffer {
     let value = this._stack.pop();
     if (value == undefined) {
       throw new Error("Stack underflow");
@@ -108,7 +121,7 @@ export class Stack {
     return value;
   }
 
-  public peek(): bigint {
+  public peek(): Buffer {
     if (this._stack.length === 0) {
       throw new Error("Stack underflow");
     }

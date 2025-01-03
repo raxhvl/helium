@@ -23,7 +23,7 @@ Buffer.prototype.toHex = function (): HexString {
 };
 
 Buffer.prototype.toBigInt = function (): bigint {
-  return BigInt(this.toString("hex"));
+  return BigInt(`0x${this.toString("hex")}`);
 };
 
 /**
