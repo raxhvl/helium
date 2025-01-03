@@ -18,7 +18,7 @@ interface Account {
   code: Buffer;
 }
 
-export interface PreState {
+export interface WorldState {
   [key: HexString]: Account;
 }
 
@@ -35,7 +35,7 @@ export interface Transaction {
 }
 
 export interface Fixture {
-  pre: PreState;
+  pre: WorldState;
   post: {
     [key: string]: PostState[];
   };

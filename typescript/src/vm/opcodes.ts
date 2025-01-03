@@ -1,5 +1,6 @@
-import { PostState } from "../types/State";
+import { WorldState } from "../types/State";
 import { AccruedSubstate, Input, MachineState } from "../types/Vm";
+import { theta } from "./evm";
 
 export enum Opcode {
   STOP = 0x00,
@@ -44,12 +45,12 @@ export enum Opcode {
 type Instruction = {
   name: string;
   getExecutionResult: (
-    postState: PostState,
+    worldState: WorldState,
     machineState: MachineState,
     accruedSubstate: AccruedSubstate,
     input: Input
   ) => {
-    postState: PostState;
+    worldState: WorldState;
     machineState: MachineState;
     accruedSubstate: AccruedSubstate;
   };
@@ -67,19 +68,19 @@ export let Instructions: Map<Opcode, Instruction> = new Map();
 Instructions.set(Opcode.STOP, {
   name: "STOP",
   getExecutionResult: (
-    postState: PostState,
+    worldState: WorldState,
     machineState: MachineState,
     accruedSubstate: AccruedSubstate,
     input: Input
   ) => {
-    return { postState, machineState, accruedSubstate };
+    return { worldState, machineState, accruedSubstate };
   },
 });
 
 Instructions.set(Opcode.ADD, {
   name: "ADD",
   getExecutionResult: (
-    postState: PostState,
+    worldState: WorldState,
     machineState: MachineState,
     accruedSubstate: AccruedSubstate,
     input: Input
@@ -87,14 +88,14 @@ Instructions.set(Opcode.ADD, {
     let a = machineState.stack.pop().toBigInt();
     let b = machineState.stack.pop().toBigInt();
     machineState.stack.push(a + b);
-    return { postState, machineState, accruedSubstate };
+    return { worldState, machineState, accruedSubstate };
   },
 });
 
 Instructions.set(Opcode.CALLDATALOAD, {
   name: "CALLDATALOAD",
   getExecutionResult: (
-    postState: PostState,
+    worldState: WorldState,
     machineState: MachineState,
     accruedSubstate: AccruedSubstate,
     input: Input
@@ -105,7 +106,7 @@ Instructions.set(Opcode.CALLDATALOAD, {
       .toString("hex")
       .padEnd(64, "0");
     machineState.stack.push(calldata);
-    return { postState, machineState, accruedSubstate };
+    return { worldState, machineState, accruedSubstate };
   },
 });
 
@@ -120,13 +121,13 @@ Instructions.set(Opcode.CALLDATALOAD, {
 Instructions.set(Opcode.GAS, {
   name: "GAS",
   getExecutionResult: (
-    postState: PostState,
+    worldState: WorldState,
     machineState: MachineState,
     accruedSubstate: AccruedSubstate,
     input: Input
   ) => {
     machineState.stack.push(machineState.gasAvailable);
-    return { postState, machineState, accruedSubstate };
+    return { worldState, machineState, accruedSubstate };
   },
 });
 
@@ -141,7 +142,7 @@ Instructions.set(Opcode.GAS, {
 Instructions.set(Opcode.CALL, {
   name: "CALL",
   getExecutionResult: (
-    postState: PostState,
+    worldState: WorldState,
     machineState: MachineState,
     accruedSubstate: AccruedSubstate,
     input: Input
@@ -154,7 +155,7 @@ Instructions.set(Opcode.CALL, {
     let outOffset = machineState.stack.pop();
     let outSize = machineState.stack.pop();
 
-    return { postState, machineState, accruedSubstate };
+    return { worldState, machineState, accruedSubstate };
   },
 });
 
@@ -163,7 +164,7 @@ for (let i = 0; i < 32; i++) {
   Instructions.set(0x60 + i, {
     name: `PUSH${i + 1}`,
     getExecutionResult: (
-      postState: PostState,
+      worldState: WorldState,
       machineState: MachineState,
       accruedSubstate: AccruedSubstate,
       input: Input
@@ -180,7 +181,7 @@ for (let i = 0; i < 32; i++) {
 
       machineState.stack.push(value);
 
-      return { postState, machineState, accruedSubstate };
+      return { worldState, machineState, accruedSubstate };
     },
   });
 }

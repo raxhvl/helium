@@ -1,6 +1,6 @@
 import { intToHex } from "../types/Data";
 import { AccruedSubstate, Input, MachineState } from "../types/Vm";
-import { PostState, PreState, Transaction } from "../types/State";
+import { WorldState, Transaction } from "../types/State";
 import { Instructions, Opcode } from "./opcodes";
 import { DEBUG } from "../lib/env";
 
@@ -10,7 +10,10 @@ import { DEBUG } from "../lib/env";
  * two states.
  *
  */
-export const ipsilon = (tx: Transaction, preState: PreState): PostState => {
+export const ipsilon = (
+  tx: Transaction,
+  worldState: WorldState
+): WorldState => {
   const intrinsicGas = 0n; // TODO: Calculate intrinsic gas
   const gasRemaining = tx.gasLimit.toBigInt() - intrinsicGas; // (81)
 
@@ -20,44 +23,15 @@ export const ipsilon = (tx: Transaction, preState: PreState): PostState => {
     tx.to,
     sender,
     sender,
-    preState[tx.to.toHex()].code,
+    worldState[tx.to.toHex()].code,
     tx.data
   );
 
   const accruedSubstate = new AccruedSubstate();
 
-  const { postState } = theta(preState, gasRemaining, accruedSubstate, input);
+  ({ worldState } = theta(worldState, gasRemaining, accruedSubstate, input));
 
-  //   const code = pre[tx.to.toHex()].code;
-
-  //   if (code.length) {
-  //     let machineState = new MachineState(tx.gasLimit.toBigInt());
-
-  //     for (
-  //       machineState.pc = 0;
-  //       machineState.pc < code.length;
-  //       machineState.pc++
-  //     ) {
-  //       const opcode = machineState.getCurrentOpcode();
-
-  //       const instruction = Instructions.get(opcode);
-
-  //       if (instruction) {
-  //         machineState = instruction.getExecutionResult(machineState);
-
-  //         if (DEBUG) {
-  //           console.log({ machineState });
-  //         }
-  //       } else {
-  //         throw new Error(
-  //           `Undefined instruction for opcode: ${intToHex(opcode)}`
-  //         );
-  //       }
-  //     }
-  //   }
-
-  //   return post;
-  return postState;
+  return worldState;
 };
 
 /**
@@ -67,17 +41,16 @@ export const ipsilon = (tx: Transaction, preState: PreState): PostState => {
  *
  */
 export const theta = (
-  preState: PreState,
+  worldState: WorldState,
   gasRemaining: bigint,
   accruedSubstate: AccruedSubstate,
   input: Input
 ): {
-  postState: PostState;
+  worldState: WorldState;
   gasRemaining: bigint;
   accruedSubstate: AccruedSubstate;
   output: Buffer;
 } => {
-  let postState = {} as PostState;
   let output = Buffer.alloc(0);
 
   let machineState = new MachineState(gasRemaining);
@@ -94,9 +67,9 @@ export const theta = (
     const instruction = Instructions.get(currentInstruction);
 
     if (instruction) {
-      ({ postState, machineState, accruedSubstate } =
+      ({ worldState, machineState, accruedSubstate } =
         instruction.getExecutionResult(
-          postState,
+          worldState,
           machineState,
           accruedSubstate,
           input
@@ -114,7 +87,7 @@ export const theta = (
     }
   }
 
-  return { postState, gasRemaining, accruedSubstate, output };
+  return { worldState, gasRemaining, accruedSubstate, output };
 };
 
 // Update program counter (169)

@@ -65,13 +65,32 @@ export class MachineState {
   }
 }
 
+/**
+ * Represents a simple memory model.
+ * It provides the ability to read and write to memory using byte and word modes.
+ */
 export class Memory {
   private _memory: Buffer = Buffer.alloc(0);
 
-  public read(offset): Buffer {
+  /**
+   * Reads a chunk of memory starting from the specified offset.
+   * @param offset The offset in memory to start reading from.
+   * @returns A buffer containing the 32 bytes starting from the offset.
+   */
+  public read(offset: number): Buffer {
     return this._memory.subarray(offset, offset + 32);
   }
 
+  /**
+   * Writes a value to memory at the specified offset in either byte or word mode.
+   *
+   * In byte mode, the value is written as a single byte (8 bits).
+   * In word mode, the value is written as a 32-bit unsigned integer (4 bytes).
+   *
+   * @param offset The offset in memory to write the value to.
+   * @param value The value to write. It can be a byte (0-255) or a 32-bit integer.
+   * @param mode The mode to write the value: "byte" for byte mode, "word" for word mode.
+   */
   public write(offset: number, value: number, mode: "byte" | "word"): void {
     if (mode === "byte") {
       this._memory.writeUInt8(value, offset);
@@ -81,19 +100,33 @@ export class Memory {
   }
 
   /**
-   * The size of the memory in bytes
-   * @returns The size of the memory in bytes
-   * */
+   * Returns the size of the memory in bytes.
+   * @returns The current size of the memory in bytes.
+   */
   public size(): number {
     return this._memory.length;
   }
 }
 
+/**
+ * Represents a stack that stores values of up to 32 bytes.
+ * It supports typical stack operations like push, pop, and peek.
+ */
 export class Stack {
   private _stack: Buffer[] = [];
 
+  // Maximum stack length
   maxLength: number = 1024;
 
+  /**
+   * Pushes a value onto the stack. The value can be a string, bigint, or Buffer.
+   *
+   * The string is expected to be a hex string (e.g., "0xabcdef").
+   * The bigint is converted into a hexadecimal string and then to a Buffer.
+   *
+   * @param value The value to push onto the stack, which can be a Buffer, string, or bigint.
+   * @throws Error if the value exceeds 32 bytes or if the stack overflows.
+   */
   public push(value: Buffer | string | bigint): void {
     if (typeof value === "string") {
       value = Buffer.from(value, "hex");
@@ -113,6 +146,11 @@ export class Stack {
     this._stack.push(value);
   }
 
+  /**
+   * Pops a value from the stack.
+   * @returns The value popped from the top of the stack.
+   * @throws Error if the stack is empty (underflow).
+   */
   public pop(): Buffer {
     let value = this._stack.pop();
     if (value == undefined) {
@@ -121,6 +159,11 @@ export class Stack {
     return value;
   }
 
+  /**
+   * Peeks at the top value of the stack without removing it.
+   * @returns The value at the top of the stack.
+   * @throws Error if the stack is empty (underflow).
+   */
   public peek(): Buffer {
     if (this._stack.length === 0) {
       throw new Error("Stack underflow");
@@ -128,6 +171,10 @@ export class Stack {
     return this._stack[this._stack.length - 1];
   }
 
+  /**
+   * Returns the current length of the stack.
+   * @returns The number of items currently in the stack.
+   */
   public get length(): number {
     return this._stack.length;
   }
