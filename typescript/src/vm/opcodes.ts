@@ -6,6 +6,7 @@ export enum Opcode {
   STOP = 0x00,
   ADD = 0x01,
   CALLDATALOAD = 0x35,
+  SSTORE = 0x55,
   GAS = 0x5a,
   CALL = 0xf1,
   PUSH1 = 0x60,
@@ -53,6 +54,7 @@ type Instruction = {
     worldState: WorldState;
     machineState: MachineState;
     accruedSubstate: AccruedSubstate;
+    output?: Buffer;
   };
 };
 
@@ -131,6 +133,24 @@ Instructions.set(Opcode.GAS, {
   },
 });
 
+Instructions.set(Opcode.SSTORE, {
+  name: "SSTORE",
+  getExecutionResult: (
+    worldState: WorldState,
+    machineState: MachineState,
+    accruedSubstate: AccruedSubstate,
+    input: Input
+  ) => {
+    let key = machineState.stack.pop().toHex();
+    let value = machineState.stack.pop().toWord().toHex();
+
+    worldState[input.executionAddress.toAddress().toHex()].storage[key] =
+      Buffer.from(value);
+
+    return { worldState, machineState, accruedSubstate };
+  },
+});
+
 /*
 ################################
 ||                            ||
@@ -147,7 +167,7 @@ Instructions.set(Opcode.CALL, {
     accruedSubstate: AccruedSubstate,
     input: Input
   ) => {
-    let gas = machineState.stack.pop();
+    let gas = machineState.stack.pop().toBigInt();
     let to = machineState.stack.pop();
     let value = machineState.stack.pop();
     let inOffset = machineState.stack.pop();
@@ -155,7 +175,27 @@ Instructions.set(Opcode.CALL, {
     let outOffset = machineState.stack.pop();
     let outSize = machineState.stack.pop();
 
-    return { worldState, machineState, accruedSubstate };
+    let output: Buffer;
+    let gasRemaining: bigint;
+
+    console.log(to);
+
+    input = new Input(
+      to,
+      input.originAddress,
+      input.executionAddress,
+      worldState[to.toAddress().toHex()].code,
+      Buffer.alloc(0) // TODO: pass calldata
+    );
+
+    ({ worldState, gasRemaining, output, accruedSubstate } = theta(
+      worldState,
+      gas,
+      accruedSubstate,
+      input
+    ));
+
+    return { worldState, machineState, accruedSubstate, output };
   },
 });
 
@@ -169,15 +209,10 @@ for (let i = 0; i < 32; i++) {
       accruedSubstate: AccruedSubstate,
       input: Input
     ) => {
-      if (i > 4) {
-        throw new Error("PUSH instruction too large");
-      }
-
       let start = machineState.pc + 1;
       let end = start + i + 1;
 
       const value = input.code.subarray(start, end).toString("hex");
-      console.log("PUSH" + (i + 1) + " " + value, input);
 
       machineState.stack.push(value);
 

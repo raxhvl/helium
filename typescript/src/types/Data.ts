@@ -15,6 +15,20 @@ declare global {
      * @returns The BigInt representation of the input Buffer.
      */
     toBigInt(): bigint;
+
+    /**
+     * Converts a Buffer to an address Buffer.
+     *
+     * @returns The address Buffer representation of the input Buffer.
+     */
+    toAddress(): Buffer;
+
+    /**
+     * Converts a Buffer to a word Buffer.
+     *
+     * @returns The word Buffer representation of the input Buffer.
+     */
+    toWord(): Buffer;
   }
 }
 
@@ -24,6 +38,23 @@ Buffer.prototype.toHex = function (): HexString {
 
 Buffer.prototype.toBigInt = function (): bigint {
   return BigInt(`0x${this.toString("hex")}`);
+};
+
+Buffer.prototype.toAddress = function (): Buffer {
+  return this._toFixedLengthBuffer(20);
+};
+
+Buffer.prototype.toWord = function (): Buffer {
+  return this._toFixedLengthBuffer(32);
+};
+
+Buffer.prototype._toFixedLengthBuffer = function (length: number): Buffer {
+  if (this.length >= length) {
+    return this.slice(-length);
+  } else {
+    const padding = Buffer.alloc(length - this.length, 0);
+    return Buffer.concat([padding, this]);
+  }
 };
 
 /**

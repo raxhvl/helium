@@ -79,6 +79,7 @@ export const theta = (
 
       if (DEBUG) {
         console.log(machineState);
+        console.log(worldState);
       }
     } else {
       throw new Error(
