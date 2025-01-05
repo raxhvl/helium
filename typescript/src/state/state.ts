@@ -14,7 +14,6 @@ async function buildStorageRoot(storage: {
   for (const slot in storage) {
     const key = Buffer.from(slot.replace(/^0x/, ""), "hex").toWord();
     const value = Buffer.from(RLP.encode(storage[slot]));
-    console.log(value);
     await storageTrie.put(key, value);
   }
   return Buffer.from(storageTrie.root());
@@ -26,8 +25,8 @@ async function buildStorageRoot(storage: {
  */
 async function encodeAccount(account: Account): Promise<Buffer> {
   // Build the storage root
-  const storageRoot = await buildStorageRoot(account.storage); // OK
-  const codeHash = keccak256(account.code); // OK
+  const storageRoot = await buildStorageRoot(account.storage);
+  const codeHash = keccak256(account.code);
   return Buffer.from(
     RLP.encode([account.nonce, account.balance, storageRoot, codeHash])
   );
@@ -41,9 +40,8 @@ export async function buildStateTrieRoot(
 ): Promise<Buffer> {
   const stateTrie = await createMPT({ useKeyHashing: true });
   for (const address in worldState) {
-    const key = Buffer.from(address.replace(/^0x/, ""), "hex"); // ?
-    const encodedAccount = await encodeAccount(worldState[address]); // OK
-    console.log("Encoded account:", key);
+    const key = Buffer.from(address.replace(/^0x/, ""), "hex").toAddress();
+    const encodedAccount = await encodeAccount(worldState[address]);
     await stateTrie.put(key, encodedAccount);
   }
   return Buffer.from(stateTrie.root());

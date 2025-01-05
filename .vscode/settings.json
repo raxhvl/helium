@@ -3,6 +3,7 @@
     "CALLDATALOAD",
     "ipsilon",
     "returndata",
+    "SSTORE",
     "substate",
     "txbytes"
   ]
