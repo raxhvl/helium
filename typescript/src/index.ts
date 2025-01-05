@@ -3,6 +3,7 @@ import { Fixture, Transaction } from "./types/State";
 import { ipsilon } from "./vm/evm";
 import { parseHexToBytes } from "./types/Data";
 import { validateEncoding } from "./lib/rlp";
+import "./state/state";
 
 const validate = (fixture: Fixture) => {
   // For each Fork key of post in the test, and for each of the elements of the list of
@@ -38,5 +39,5 @@ const validate = (fixture: Fixture) => {
     JSON.parse(await fs.readFile(filePath, "utf8"))[testName]
   );
 
-  validate(fixture);
+  // validate(fixture);
 })();

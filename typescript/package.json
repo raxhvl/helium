@@ -14,6 +14,8 @@
     "tsx": "^4.19.2"
   },
   "dependencies": {
+    "@ethereumjs/mpt": "^7.0.0-alpha.1",
+    "ethereum-cryptography": "^3.0.0",
     "rlp": "^3.0.0",
     "ts-node": "^10.9.2"
   }

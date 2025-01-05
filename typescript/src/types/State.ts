@@ -11,7 +11,7 @@ export interface PostState {
   txbytes: Buffer;
 }
 
-interface Account {
+export interface Account {
   nonce: Buffer;
   balance: Buffer;
   storage: { [key: HexString]: Buffer };
