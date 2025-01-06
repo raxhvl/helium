@@ -27,6 +27,13 @@ async function encodeAccount(account: Account): Promise<Buffer> {
   // Build the storage root
   const storageRoot = await buildStorageRoot(account.storage);
   const codeHash = keccak256(account.code);
+
+  // RLP encoding of scalar values MUST NOT have
+  // leading zero. (199)
+  // Positive integers must be represented in big-endian binary form with no
+  // leading zeroes (thus making the integer value zero equivalent to the empty byte array).
+  // See: https://github.com/ethereum/execution-specs/blob/4c7eaa840c421a1db2c01617532f31d08dc3dc6e/tests/test_rlp.py#L73
+
   return Buffer.from(
     RLP.encode([
       account.nonce.stripLeadingZeros(),
