@@ -28,7 +28,12 @@ async function encodeAccount(account: Account): Promise<Buffer> {
   const storageRoot = await buildStorageRoot(account.storage);
   const codeHash = keccak256(account.code);
   return Buffer.from(
-    RLP.encode([account.nonce, account.balance, storageRoot, codeHash])
+    RLP.encode([
+      account.nonce.stripLeadingZeros(),
+      account.balance.stripLeadingZeros(),
+      storageRoot,
+      codeHash,
+    ])
   );
 }
 

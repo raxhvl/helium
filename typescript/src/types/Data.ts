@@ -29,6 +29,13 @@ declare global {
      * @returns The word Buffer representation of the input Buffer.
      */
     toWord(): Buffer;
+
+    /**
+     * Trims leading zeros from a `Buffer`.
+     * @return {Buffer}
+     *
+     */
+    stripLeadingZeros(): Buffer;
   }
 }
 
@@ -58,6 +65,20 @@ Buffer.prototype._toFixedLengthBuffer = function (length: number): Buffer {
 };
 
 /**
+ * Trims leading zeros from a `Buffer`.
+ * @return {Buffer}
+ */
+Buffer.prototype.stripLeadingZeros = function (): Buffer {
+  let a = this;
+  let first = a[0];
+  while (a.length > 0 && first === 0) {
+    a = a.subarray(1);
+    first = a[0];
+  }
+  return a;
+};
+
+/**
  * Converts a hexadecimal string to a Buffer.
  *
  * @param hex - The hexadecimal string to be converted.
@@ -65,6 +86,27 @@ Buffer.prototype._toFixedLengthBuffer = function (length: number): Buffer {
  */
 export const intToHex = (int: number): HexString => {
   return `0x${int.toString(16)}`;
+};
+
+const padToEven = (value: string): string => {
+  if (value.length % 2) {
+    console.log(`${value} -> 0${value}`);
+    return `0${value}`;
+  }
+  return value;
+};
+
+/**
+ * Converts a hexadecimal string to a Buffer.
+ *
+ * @param hex - The hexadecimal string to be converted.
+ * @returns The Buffer representation of the input hexadecimal string.
+ */
+export const hexToBuffer = (hex: string): Buffer => {
+  if (hex.startsWith("0x")) {
+    hex = hex.slice(2);
+  }
+  return Buffer.from(padToEven(hex), "hex");
 };
 
 /**
@@ -80,7 +122,7 @@ export const intToHex = (int: number): HexString => {
 export function parseHexToBytes(obj: any): any {
   if (typeof obj === "string" && obj.startsWith("0x")) {
     // If obj is a string that starts with "0x", convert it to a Buffer
-    return Buffer.from(obj.slice(2), "hex");
+    return hexToBuffer(obj);
   }
 
   if (typeof obj !== "object" || obj === null) {
@@ -98,8 +140,7 @@ export function parseHexToBytes(obj: any): any {
 
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === "string" && value.startsWith("0x")) {
-      // If the value starts with "0x", convert it to a Buffer
-      result[key] = Buffer.from(value.slice(2), "hex");
+      result[key] = hexToBuffer(value);
     } else {
       // Otherwise, process the value recursively
       result[key] = parseHexToBytes(value);
