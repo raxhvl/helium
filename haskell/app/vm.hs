@@ -1,18 +1,18 @@
+{-# LANGUAGE BangPatterns #-}
 module VM where
 
 import Data.Word (Word8, Word16, Word256)
-import Data.Vector (Vector, (!))
-import qualified Data.Vector as V
+import Data.Vector.Unboxed (Vector, (!))
+import qualified Data.Vector.Unboxed as V
 import Data.Bits (shiftL, (.|.))
 
--- Define the types for Transaction and State
 data Transaction = Transaction {
-    txData :: Vector Word8 -- Transaction data
+    txData :: !(Vector Word8)  -- Made strict
 } deriving (Show, Eq)
 
 data State = State {
-    stack :: [Word256], -- Stack to hold values
-    memory :: Vector Word8 -- Memory for the VM
+    stack :: ![Word256],      -- Made strict
+    memory :: !(Vector Word8)  -- Made strict
 } deriving (Show, Eq)
 
 -- Define the PUSH opcodes
@@ -27,28 +27,41 @@ ipsilon transaction currentState =
         Left err -> Left err
         Right opcode -> Right (executeOpcode opcode currentState)
 
--- Decode the opcode from the transaction data
+-- Optimized decode function with explicit type signature
 decodeOpcode :: Vector Word8 -> Either String Opcode
 decodeOpcode txData
     | V.null txData = Left "Transaction data is empty"
     | otherwise = case txData ! 0 of
-        0x60 -> decodePush 2 PUSH1
-        0x61 -> decodePush 3 (PUSH2 . toWord16)
-        0x7f -> decodePush 33 (PUSH32 . toWord256)
-        _    -> Left "Unknown opcode"
-  where
-    decodePush n constructor
-        | V.length txData >= n = Right (constructor (V.slice 1 (n - 1) txData))
-        | otherwise = Left $ "Insufficient data for " ++ show (txData ! 0) ++ " opcode"
+        0x60 -> decodePush1 txData
+        0x61 -> decodePush2 txData
+        0x7f -> decodePush32 txData
+        op   -> Left $ "Unknown opcode: " ++ show op
 
-    toWord16 v = fromIntegral (v ! 0) `shiftL` 8 .|. fromIntegral (v ! 1)
-    toWord256 = V.foldl' (\acc x -> acc `shiftL` 8 .|. fromIntegral x) 0
+-- Specialized decode functions for better performance
+decodePush1 :: Vector Word8 -> Either String Opcode
+decodePush1 v | V.length v >= 2 = Right $ PUSH1 (v ! 1)
+              | otherwise = Left "Insufficient data for PUSH1"
 
--- Execute the opcode and update the state
+decodePush2 :: Vector Word8 -> Either String Opcode
+decodePush2 v | V.length v >= 3 = Right $ PUSH2 (toWord16 (v ! 1) (v ! 2))
+              | otherwise = Left "Insufficient data for PUSH2"
+
+decodePush32 :: Vector Word8 -> Either String Opcode
+decodePush32 v | V.length v >= 33 = Right $ PUSH32 (toWord256 $ V.slice 1 32 v)
+               | otherwise = Left "Insufficient data for PUSH32"
+
+-- Optimized word conversion functions
+{-# INLINE toWord16 #-}
+toWord16 :: Word8 -> Word8 -> Word16
+toWord16 hi lo = (fromIntegral hi `shiftL` 8) .|. fromIntegral lo
+
+{-# INLINE toWord256 #-}
+toWord256 :: Vector Word8 -> Word256
+toWord256 = V.foldl' (\(!acc) x -> (acc `shiftL` 8) .|. fromIntegral x) 0
+
+-- Strict state updates
 executeOpcode :: Opcode -> State -> State
-executeOpcode opcode state = case opcode of
-    PUSH1 value -> push value
-    PUSH2 value -> push value
-    PUSH32 value -> push value
-  where
-    push value = state { stack = fromIntegral value : stack state }
+executeOpcode opcode !state = case opcode of
+    PUSH1 !value -> state { stack = fromIntegral value : stack state }
+    PUSH2 !value -> state { stack = fromIntegral value : stack state }
+    PUSH32 !value -> state { stack = value : stack state }

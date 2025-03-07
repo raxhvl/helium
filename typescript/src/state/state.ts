@@ -1,7 +1,7 @@
 import { createMPT } from "@ethereumjs/mpt";
 import * as RLP from "rlp";
 import { keccak256 } from "ethereum-cryptography/keccak";
-import { HexString, parseHexToBytes } from "../types/Data";
+import { HexString } from "../types/Data";
 import { Account, WorldState } from "../types/State";
 
 /**
